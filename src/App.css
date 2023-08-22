@@ -1,1 +1,11 @@
 /* write your css here */
+
+.flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Expand the main content area */
+.flex-grow {
+    flex-grow: 1;
+}
