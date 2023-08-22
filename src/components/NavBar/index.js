@@ -11,7 +11,7 @@ const NavBar = () => {
               <nav>
                   <a href="/home" className="text-white mx-4 hover:text-gray-300">Home</a>
                   <a href="/productlist" className="text-white mx-4 hover:text-gray-300">Product List</a>
-                  <a href="#" className="text-white mx-4 hover:text-gray-300">Contact</a>
+                  <a href="/cart" className="text-white mx-4 hover:text-gray-300">Cart</a>
               </nav>
           </div>
       </header> 
