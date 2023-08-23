@@ -10,7 +10,6 @@ function ProductModal({ isOpen, onClose }) {
   const handleSubmit = async () => {
     const currentTimestamp = new Date().getTime();
     const db = getDatabase();
-    const productRef = ref(db, 'products');
     console.log(name,price);
     if(name !== "" && price !== ""){
     set(ref(db, 'products/' + currentTimestamp), {

@@ -1,59 +1,90 @@
-import React from 'react';
+import React,{ useState, useEffect} from 'react';
+import { getDatabase, ref, set, get, remove } from "firebase/database";
 
-const products = [
-    {
-      id: 1,
-      name: 'Product 1',
-      price: 29.99,
-      image: 'https://cdn.pixabay.com/photo/2019/04/26/07/14/store-4156934_1280.png',
-    },
-    {
-      id: 2,
-      name: 'Product 2',
-      price: 19.99,
-      image: 'https://cdn.pixabay.com/photo/2021/05/27/18/55/woman-6289052_640.png',
-    },
-    {
-      id: 3,
-      name: 'Product 3',
-      price: 9.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-      id: 4,
-      name: 'Product 4',
-      price: 39.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-      id: 5,
-      name: 'Product 5',
-      price: 15.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-      id: 6,
-      name: 'Product 6',
-      price: 49.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-        id: 7,
-        name: 'Product 7',
-        price: 9.99,
-        image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-        id: 7,
-        name: 'Product 7',
-        price: 9.99,
-        image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    
-  ];
+const Cart = () =>  {
+    const [products, setProducts]                       = useState([]);
+    const [refreshCart, setRefreshCart]                 = useState(false);
 
-const ProductList = () =>  {
-  return (
+    const deleteFromCart = (cartItemId) => {
+        const db = getDatabase();
+        console.log("cart", cartItemId);
+        const cartItemRef = ref(db, 'cart/' + cartItemId);
+      
+        remove(cartItemRef)
+          .then(() => {
+            console.log('Product removed from Cart successfully');
+            setRefreshCart(prevRefreshCart => !prevRefreshCart);
+          })
+          .catch(error => {
+            console.error('Error removing product from cart:', error);
+          });
+        
+        
+    };
+    useEffect(() => {
+        const db = getDatabase();
+        const productsRef = ref(db, 'products');
+        const cartRef = ref(db, 'cart'); // Update this to match your cart reference
+      
+        Promise.all([get(productsRef), get(cartRef)])
+          .then(([productsSnapshot, cartSnapshot]) => {
+            if (productsSnapshot.exists() && cartSnapshot.exists()) {
+              const productsData = productsSnapshot.val();
+              const cartData = cartSnapshot.val();
+      
+              // Process products data
+              let productsArray = [];
+              for (let key in productsData) {
+                let product = {
+                  id: key,
+                  name: productsData[key]?.name,
+                  image: productsData[key]?.image,
+                  price: productsData[key]?.price,
+                };
+                productsArray.push(product);
+              }
+              console.log('Products:', productsArray);
+      
+              // Process cart data (if applicable)
+              let cartArray = [];
+              for (let key in cartData) {
+                let cartItem = {
+                  id: key,
+                  key: cartData[key]?.key,
+                };
+                cartArray.push(cartItem);
+              }
+              console.log('Cart:', cartArray);
+            
+            const filteredProducts = productsArray.filter(product => {
+                const cartItem = cartArray.find(cartItem => cartItem.key === product.id);
+                if (cartItem) {
+                  return true; 
+                } else {
+                  return false; 
+                }
+              }).map(product => {
+                const cartItem = cartArray.find(cartItem => cartItem.key === product.id);
+                return {
+                  ...product,
+                  cartId: cartItem.id
+                };
+            });
+            
+            console.log("gt",filteredProducts);
+            setProducts(filteredProducts);
+              
+            } else {
+              console.log('No data available');
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+      }, [refreshCart]);
+      
+
+    return (
       <div className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
           <div className="mx-auto max-w-3xl">
               <header className="text-center">
@@ -62,25 +93,22 @@ const ProductList = () =>  {
 
               <div className="mt-8">
                   <ul className="space-y-4">
-                      <li className="flex items-center gap-4">
+
+                  {products.map(product => (
+                      <li key={product?.id} className="flex items-center gap-4">
                           <img
-                              src="https://images.unsplash.com/photo-1618354691373-d851c5c3a990?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=830&q=80"
+                              src={product?.image}
                               alt=""
                               className="h-16 w-16 rounded object-cover"
                           />
 
                           <div>
-                              <h3 className="text-sm text-gray-900">Basic Tee 6-Pack</h3>
+                              <h3 className="text-lg text-gray-900">{product?.name}</h3>
 
-                              <dl className="mt-0.5 space-y-px text-[10px] text-gray-600">
+                              <dl className="mt-0.5 space-y-px text-[18px] text-gray-600">
                                   <div>
-                                      <dt className="inline">Size:</dt>
-                                      <dd className="inline">XXS</dd>
-                                  </div>
-
-                                  <div>
-                                      <dt className="inline">Color:</dt>
-                                      <dd className="inline">White</dd>
+                                      <dt className="inline">Price:</dt>
+                                      <dd className="inline">{product?.price}</dd>
                                   </div>
                               </dl>
                           </div>
@@ -98,7 +126,7 @@ const ProductList = () =>  {
                                   />
                               </form>
 
-                              <button className="text-gray-600 transition hover:text-red-600">
+                              <button onClick={() => deleteFromCart(product?.cartId)} className="text-gray-600 transition hover:text-red-600">
                                   <span className="sr-only">Remove item</span>
 
                                   <svg
@@ -118,6 +146,7 @@ const ProductList = () =>  {
                               </button>
                           </div>
                       </li>
+                    ))}
 
                   </ul>
 
@@ -184,4 +213,4 @@ const ProductList = () =>  {
   );
 }
 
-export default ProductList;
+export default Cart;

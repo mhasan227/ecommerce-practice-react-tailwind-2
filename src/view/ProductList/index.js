@@ -1,62 +1,88 @@
-import React from 'react';
-
-const products = [
-    {
-      id: 1,
-      name: 'Product 1',
-      price: 29.99,
-      image: 'https://cdn.pixabay.com/photo/2019/04/26/07/14/store-4156934_1280.png',
-    },
-    {
-      id: 2,
-      name: 'Product 2',
-      price: 19.99,
-      image: 'https://cdn.pixabay.com/photo/2021/05/27/18/55/woman-6289052_640.png',
-    },
-    {
-      id: 3,
-      name: 'Product 3',
-      price: 9.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-      id: 4,
-      name: 'Product 4',
-      price: 39.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-      id: 5,
-      name: 'Product 5',
-      price: 15.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-      id: 6,
-      name: 'Product 6',
-      price: 49.99,
-      image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-        id: 7,
-        name: 'Product 7',
-        price: 9.99,
-        image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    {
-        id: 7,
-        name: 'Product 7',
-        price: 9.99,
-        image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1770&q=80',
-    },
-    
-  ];
+import React, { useState, useEffect} from 'react';
+import { getDatabase, ref, set, get } from "firebase/database";
 
 const ProductList = () =>  {
-  return (
+
+    const [products, setProducts]                       = useState([]);
+    const [successMessage, setSuccessMessage]           = useState('');
+  const [errorMessage, setErrorMessage]                 = useState('');
+
+    const handleAddToCart = (productId) => {
+        const currentTimestamp = new Date().getTime();
+        const db = getDatabase();
+        
+        set(ref(db, 'cart/' + currentTimestamp), {
+            key: productId,
+        })
+            .then(() => {
+            console.log('Product added to Cart successfully');
+            setSuccessMessage('Product added to Cart successfully');
+            setErrorMessage('');
+    
+            setTimeout(() => {
+                setSuccessMessage('');
+            }, 3000);
+            })
+            .catch(error => {
+            console.error('Error adding new product:', error);
+            setSuccessMessage('');
+            setErrorMessage('Error adding new product');
+            setTimeout(() => {
+                setErrorMessage('');
+            }, 3000);
+        });
+        
+    }
+    
+    useEffect(() => {
+        const db = getDatabase();
+        const productsRef = ref(db, 'products');
+    
+        get(productsRef)
+          .then(snapshot => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+              //const productList = Object.values(data);
+                let dataArray = [];
+                for(let key in data){
+                  
+                  let obj = data[key];
+                  let list = {
+                    id: key,
+                    name: data[key]?.name,
+                    image: data[key]?.image,
+                    price: data[key]?.price,
+                  };
+    
+                  dataArray.push(list);
+    
+                }
+              setProducts(dataArray);
+            } else {
+              console.log('No data available');
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching data:', error);
+          });
+    }, [products]);
+    
+    return (
 
       <div className="flex flex-col min-h-screen justify-between {{- end }}">
           <div className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+
+            {successMessage && (
+            <div className="py-2 px-4 rounded-md bg-green-500 text-white">
+                <p>{successMessage}</p>
+            </div>
+            )}
+
+            {errorMessage && (
+            <div className="py-2 px-4 rounded-md bg-red-500 text-white">
+                <p>{errorMessage}</p>
+            </div>
+            )}
               <div>
                   <h2 className="text-xl font-bold text-gray-900 sm:text-3xl">
                       Product Collection
@@ -143,7 +169,7 @@ const ProductList = () =>  {
 
                                       <span className="tracking-wider text-gray-900"> {product?.price} </span>
                                   </p>
-                                  <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300">
+                                  <button onClick={() => handleAddToCart(product.id)} className="mt-2 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-300">
                                       Add to Cart
                                   </button>
                               </div>
