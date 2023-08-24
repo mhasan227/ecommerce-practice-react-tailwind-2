@@ -73,7 +73,7 @@ const ProductList = () =>  {
           <div className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
 
             {successMessage && (
-            <div className="py-2 px-4 rounded-md bg-green-500 text-white">
+            <div className="py-2 px-4 rounded-md bg-green-500 text-white z-50" style={{position: 'absolute', top: '50px', left: 'auto', right: '50px'}}>
                 <p>{successMessage}</p>
             </div>
             )}
