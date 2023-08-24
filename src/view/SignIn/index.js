@@ -1,42 +1,66 @@
 import React,{ useState } from 'react';
-import { getDatabase, ref, push, set } from 'firebase/database';
+import { getDatabase, ref, push, set, get } from 'firebase/database';
 import { fixBangladeshPhoneNumbers, isValidPhoneNumber } from '../../util/misc'
+import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate  } from 'react-router-dom';
 
-export default function SignIn() {
+export default function SignIn({ onSignIn }) {
 
     const [number, setNumber]       = useState('');
     const [password, setPassword]   = useState('');
 
-    const [successMessage, setSuccessMessage] = useState('');
+    //const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage]     = useState('');
-
+    const navigate = useNavigate();
     const handleSubmit = async () => {
-        const currentTimestamp = new Date().getTime();
+        
         const db = getDatabase();
         console.log(password,number);
         if(password !== "" && number !== "" && isValidPhoneNumber(fixBangladeshPhoneNumbers(number))) {
-          set(ref(db, 'users/' + currentTimestamp), {
-              
-              number: fixBangladeshPhoneNumbers(number),
-              password: password,
-          })
-            .then(() => {
-              console.log('Sign In successfully');
-              setSuccessMessage('Sign In successfully');
-              setErrorMessage('');
-      
-              setTimeout(() => {
-                setSuccessMessage('');
-              }, 3000);
-            })
-            .catch(error => {
-              console.error('Something wrong:', error);
-              setSuccessMessage('');
-              setErrorMessage('Something wrong');
+            const userRef = ref(db, 'users');
+            const inputValue = { number: fixBangladeshPhoneNumbers(number), password: password };
+            get(userRef)
+              .then(snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+
+                    let dataArray = [];
+                    for(let key in data){
+                    
+                    let list = {
+                        id: key,
+                        number: data[key]?.number,
+                        password: data[key]?.password,
+                    };
+        
+                    dataArray.push(list);
+        
+                    }
+                    const isMatch = dataArray.some(data => {
+                        return data?.number === inputValue?.number && data?.password === inputValue?.password;
+                    });
+                    if (isMatch) {
+                        console.log('Match number and password');
+                        onSignIn(true);
+                        navigate('/home');
+                    } else {
+                        console.log('Wrong password or phone number');
+                        setErrorMessage('Wrong password or phone number');
+                        navigate('/');
+                        
+                    }
+                } else {
+                  console.log('No data available');
+                  setErrorMessage('No data available');
+                }
+              })
+              .catch(error => {
+                console.error('Error fetching data:', error);
+                setErrorMessage('Error fetching data')
+              });
+
               setTimeout(() => {
                 setErrorMessage('');
-              }, 3000);
-            });
+            }, 3000);
         }
     
         // Clear input fields
@@ -47,6 +71,11 @@ export default function SignIn() {
     return (
         <div className="relative flex flex-col justify-center min-h-screen overflow-hidden">
             <div className="w-full p-6 m-auto bg-white rounded-md shadow-md lg:max-w-xl">
+                {errorMessage && (
+                    <div className="py-2 px-4 rounded-md bg-red-500 text-white">
+                        <p>{errorMessage}</p>
+                    </div>
+                )}
                 <h1 className="text-3xl font-semibold text-center text-purple-700 underline">
                    Sign in
                 </h1>
@@ -84,7 +113,7 @@ export default function SignIn() {
                     Forget Password?
                 </a>
                 <div className="mt-6">
-                    <button className="w-full px-4 py-2 tracking-wide text-white transition-colors duration-200 transform bg-purple-700 rounded-md hover:bg-purple-600 focus:outline-none focus:bg-purple-600">
+                    <button onClick={handleSubmit} className="w-full px-4 py-2 tracking-wide text-white transition-colors duration-200 transform bg-purple-700 rounded-md hover:bg-purple-600 focus:outline-none focus:bg-purple-600">
                         Login
                     </button>
                 </div>
